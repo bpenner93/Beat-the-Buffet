@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beat the Buffett</title>
+<style>
+  :root{
+    --bg:#0a0e17; --panel:#121826; --panel2:#192133; --line:#26304a;
+    --txt:#e7ecf5; --muted:#8a96ad; --accent:#3b82f6;
+    --green:#22c55e; --red:#ef4444; --gold:#fbbf24; --teal:#2dd4bf;
+    --mono:ui-monospace,"Cascadia Code","SF Mono",Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:radial-gradient(1200px 700px at 50% -10%,#16203a 0%,var(--bg) 55%) fixed;
+    color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:960px;margin:0 auto;padding:28px 20px 60px}
+  .screen{display:none;animation:fade .35s ease}
+  .screen.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  h1{font-size:34px;letter-spacing:-.5px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:15px;margin:0 0 26px}
+  .mono{font-family:var(--mono)} .green{color:var(--green)} .red{color:var(--red)} .gold{color:var(--gold)}
+  .hero{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:18px;padding:30px 28px;margin-bottom:18px}
+  .decade-badge{display:inline-block;font-family:var(--mono);font-size:13px;color:var(--gold);border:1px solid var(--gold);border-radius:999px;padding:4px 12px;margin-bottom:16px;letter-spacing:1px}
+  .rules{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:22px 0 6px}
+  .rule{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 14px}
+  .rule b{display:block;font-size:14px;margin-bottom:4px}
+  .rule span{color:var(--muted);font-size:13px;line-height:1.45}
+  .choose{display:flex;gap:14px;margin-top:22px;flex-wrap:wrap}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:12px;font-size:16px;font-weight:600;padding:14px 22px;transition:transform .08s,filter .15s,background .15s}
+  button:active{transform:translateY(1px)}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover{filter:brightness(1.12)}
+  .btn-ghost{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+  .btn-ghost:hover{background:var(--line)}
+  .btn-big{flex:1;min-width:200px;text-align:left;padding:18px 22px}
+  .btn-big small{display:block;font-weight:400;font-size:13px;opacity:.8;margin-top:3px}
+  .linkbtn{background:none;border:none;color:var(--muted);font-size:14px;padding:8px;cursor:pointer;text-decoration:underline}
+  .linkbtn:hover{color:var(--txt)}
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:14px;flex-wrap:wrap}
+  .scoreline{display:flex;gap:8px;align-items:center;font-family:var(--mono);font-size:14px}
+  .pip{width:13px;height:13px;border-radius:50%;border:1px solid var(--line);background:var(--panel)}
+  .pip.win{background:var(--green);border-color:var(--green)} .pip.loss{background:var(--red);border-color:var(--red)}
+  .pack-year{text-align:center;font-size:16px;color:var(--muted);margin:2px 0 16px}
+  .pack-year b{color:var(--txt);font-family:var(--mono);font-size:30px;font-weight:800;letter-spacing:-1px;display:block;margin-bottom:2px}
+  .pack{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:13px}
+  .diffsel{display:flex;gap:8px;margin:4px 0 6px;flex-wrap:wrap}
+  .diffbtn{flex:1;min-width:108px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 10px;cursor:pointer;text-align:center;font-size:14px;font-weight:700;transition:border-color .12s,background .12s}
+  .diffbtn small{display:block;font-weight:400;color:var(--muted);font-size:11px;margin-top:3px}
+  .diffbtn.on{border-color:var(--gold);background:rgba(251,191,36,.10)}
+  .diffblurb{color:var(--muted);font-size:13px;margin:6px 2px 0;min-height:18px}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;transition:transform .12s,border-color .12s,box-shadow .12s;position:relative;overflow:hidden}
+  .card:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 10px 30px -12px rgba(59,130,246,.5)}
+  .card .tk{font-family:var(--mono);font-size:20px;font-weight:700;letter-spacing:.5px}
+  .card .nm{font-size:13.5px;color:var(--muted);margin:2px 0 10px}
+  .card .bl{font-size:13.5px;line-height:1.5}
+  .chip{display:inline-block;font-size:11px;font-family:var(--mono);padding:3px 9px;border-radius:999px;font-weight:600;margin-bottom:10px}
+  .draft-foot{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:12px;flex-wrap:wrap}
+  .hint{color:var(--muted);font-size:13px}
+  .ticker-readout{text-align:center;margin:6px 0 14px}
+  .ticker-readout .val{font-family:var(--mono);font-size:52px;font-weight:700;line-height:1}
+  .ticker-readout .date{font-family:var(--mono);color:var(--muted);font-size:16px;margin-top:6px}
+  .ticker-readout .delta{font-family:var(--mono);font-size:15px;margin-top:4px}
+  #chart{width:100%;height:280px;background:var(--panel);border:1px solid var(--line);border-radius:14px;display:block}
+  .legend{display:flex;gap:18px;justify-content:center;margin:10px 0 4px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+  .legend i{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+  .holdings{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px}
+  .hold{font-family:var(--mono);font-size:13px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+  .hold b{font-weight:700}
+  .result-head{display:flex;align-items:center;gap:20px;background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:18px;padding:24px;margin-bottom:16px;flex-wrap:wrap}
+  .grade{width:104px;height:104px;border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:56px;flex-shrink:0}
+  .result-head .ms-label{font-size:28px;font-weight:800;line-height:1.05;letter-spacing:-.5px}
+  .result-head .big{font-family:var(--mono);font-size:30px;font-weight:700;margin-top:6px}
+  .result-head .head-sub{color:var(--muted);margin-top:8px;font-size:14.5px;line-height:1.55}
+  .gchip{display:inline-block;font-family:var(--mono);font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px;border:1px solid var(--line);margin-right:6px}
+  .badges{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 16px}
+  .badge{font-size:13px;font-weight:600;padding:8px 13px;border-radius:10px;border:1px solid var(--line);background:var(--panel);display:flex;align-items:center;gap:7px}
+  .secthead{color:var(--muted);font-size:12px;font-weight:700;letter-spacing:1px;margin:0 2px 8px}
+  .bars{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+  .bar-row{display:flex;align-items:center;gap:12px;margin:9px 0;font-size:14px}
+  .bar-row .lab{width:120px;color:var(--muted);flex-shrink:0}
+  .bar-track{flex:1;height:22px;background:var(--panel2);border-radius:6px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-family:var(--mono);font-size:12px;color:#04121f;font-weight:700;min-width:42px}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:16px}
+  th,td{text-align:left;padding:11px 14px;font-size:14px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+  tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono);text-align:right}
+  tr.you td{background:rgba(251,191,36,.10)}
+  .answer{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px}
+  .answer h3{margin:0 0 12px;font-size:15px}
+  .ans-row{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .ans-row:last-child{border-bottom:none}
+  .lb-entry{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--gold);border-radius:14px;padding:16px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .lb-entry input{font-family:inherit;font-size:15px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--txt);flex:1;min-width:120px}
+  .footer-note{color:var(--muted);font-size:12.5px;text-align:center;margin-top:26px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- START -->
+  <section id="screen-start" class="screen active">
+    <div class="hero">
+      <span class="decade-badge">🎩 BEAT THE BUFFETT</span>
+      <h1>Beat the Buffett</h1>
+      <p class="sub">Each round drops you into a year and shows you the companies you could have bought. Pick one, hold it ten years — and find out whether you beat Warren Buffett over that decade. Beat him most years to win. Beat him <i>every</i> year for a perfect game.</p>
+      <div class="rules">
+        <div class="rule"><b>1 · Pick a year's winner</b><span>Each round is a real year (say 2004). You see a slate of companies you could've bought then — pick the one you'd hold for ten years.</span></div>
+        <div class="rule"><b>2 · Head-to-head vs Buffett</b><span>Your stock either beat Buffett over that decade, or it didn't. Each year is a win or a loss. Some companies on the board went to zero.</span></div>
+        <div class="rule"><b>3 · Go undefeated</b><span>Win more years than you lose to beat the Oracle. Run the table for a perfect game — and climb the leaderboard.</span></div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:1px;margin-bottom:8px">CHOOSE YOUR DIFFICULTY</div>
+      <div class="diffsel" id="diffsel"></div>
+      <div class="diffblurb" id="diffblurb"></div>
+      <div class="choose">
+        <button class="btn-primary btn-big" onclick="startGame(5)">Play 5 rounds <small>A quick five years</small></button>
+        <button class="btn-ghost btn-big" onclick="startGame(10)">Play 10 rounds <small>The full season · go 10-0</small></button>
+      </div>
+    </div>
+    <div style="text-align:center"><button class="linkbtn" onclick="renderLB();show('screen-lb')">🏆 View leaderboard</button></div>
+    <p class="footer-note" id="data-note"></p>
+  </section>
+
+  <!-- DRAFT -->
+  <section id="screen-draft" class="screen">
+    <div class="topbar">
+      <div><h1 style="font-size:24px;margin:0">Pick the year's winner</h1>
+        <p class="sub" style="margin:4px 0 0" id="draft-progress"></p></div>
+      <div class="scoreline" id="scoreline"></div>
+    </div>
+    <div class="pack-year" id="pack-year"></div>
+    <div class="pack" id="pack"></div>
+    <div class="draft-foot">
+      <span class="hint" id="reroll-hint"></span>
+      <button class="btn-ghost" id="reroll-btn" onclick="reroll()">↻ Re-deal this year</button>
+    </div>
+  </section>
+
+  <!-- SIM -->
+  <section id="screen-sim" class="screen">
+    <h1 style="font-size:22px;margin:0 0 2px;text-align:center">Ten years go by…</h1>
+    <div class="ticker-readout">
+      <div class="val mono" id="sim-val">$10,000</div>
+      <div class="date" id="sim-date">Year 0 of 10</div>
+      <div class="delta mono" id="sim-delta">&nbsp;</div>
+    </div>
+    <canvas id="chart"></canvas>
+    <div class="legend">
+      <span><i style="background:var(--green)"></i>Your basket</span>
+      <span><i style="background:var(--gold)"></i>Warren Buffett</span>
+      <span><i style="background:#64748b"></i>S&amp;P 500</span>
+    </div>
+    <div class="holdings" id="holdings"></div>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="screen-results" class="screen">
+    <div class="result-head">
+      <div class="grade" id="ms-emoji">🎩</div>
+      <div style="flex:1;min-width:220px">
+        <div class="ms-label" id="ms-label">—</div>
+        <div class="big mono" id="res-val">—</div>
+        <div class="head-sub" id="res-sub"></div>
+      </div>
+    </div>
+    <div id="lb-entry-slot"></div>
+    <div class="badges" id="res-badges"></div>
+    <div class="secthead">YEAR-BY-YEAR vs <span id="bench-name">BUFFETT</span></div>
+    <table id="res-table"></table>
+    <div class="secthead">WHERE YOUR MONEY LANDED</div>
+    <div class="bars" id="res-bars"></div>
+    <div class="answer">
+      <h3>🕰️ The answer key <span style="color:var(--muted);font-weight:400">— the best stock you could have bought each year</span></h3>
+      <div id="answer-list"></div>
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="btn-primary" onclick="startGame(state.numPicks)">Play again</button>
+      <button class="btn-ghost" onclick="renderLB(state.lastTs);show('screen-lb')">🏆 Leaderboard</button>
+      <button class="btn-ghost" onclick="show('screen-start')">Change game</button>
+    </div>
+    <p class="footer-note">Prices are real, split- and dividend-adjusted monthly closes (Yahoo Finance), 1990–2026; benchmarks are the S&amp;P 500 Total Return index and Berkshire Hathaway. Failed companies use stylized total-loss paths.<br>This is a historical game, not investment advice. Past performance ≠ future results.</p>
+  </section>
+
+  <!-- LEADERBOARD -->
+  <section id="screen-lb" class="screen">
+    <h1 style="font-size:26px">🏆 Leaderboard</h1>
+    <p class="sub">Your best runs on this device — ranked by record against Buffett, then money made.</p>
+    <table id="lb-table"></table>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="btn-primary" onclick="show('screen-start')">Play</button>
+      <button class="linkbtn" onclick="clearLB()">Clear leaderboard</button>
+    </div>
+  </section>
+
+</div>
+
+<script src="data.js"></script>
+<script>
+const DATA = window.MARKET_DATA;
+const BASE = DATA ? DATA.baseYear : 1990;
+const H = DATA ? DATA.horizonYears : 10;
+const HM = H * 12;
+const LATEST = 2026 - H;                 // latest draftable buy-year
+const LB_KEY = 'btb_scores_v2';
+const SECTOR_COLORS = {Tech:"#3b82f6",Consumer:"#f59e0b",Media:"#a855f7",Finance:"#22c55e",Health:"#ec4899",Retail:"#fb923c",Energy:"#64748b",Telecom:"#06b6d4",Auto:"#14b8a6",Industrial:"#94a3b8"};
+// Difficulty: how many companies you see per year, who you must beat each round, and by how much.
+// The hardness comes from the win-LOSS record (you must beat the benchmark most years), not from
+// limiting choice — so you get a generous slate to pick from.
+const DIFFS = {
+  easy:  {label:'Easy',  emoji:'🟢', cards:8, bench:'buf', margin:0,    rerolls:2, mult:1.0, blurb:'Beat Buffett with your pick each year. 8 companies to choose from, 2 re-deals.'},
+  normal:{label:'Normal',emoji:'🔵', cards:8, bench:'buf', margin:0,    rerolls:1, mult:1.6, blurb:'Beat Buffett each year. 8 companies, 1 re-deal.'},
+  hard:  {label:'Hard',  emoji:'🟠', cards:8, bench:'max', margin:0,    rerolls:1, mult:2.4, blurb:'Beat the tougher of Buffett and the S&P 500 each year.'},
+  brutal:{label:'Brutal',emoji:'🔴', cards:8, bench:'max', margin:0.25, rerolls:0, mult:3.6, blurb:'Beat the tougher of Buffett & the S&P by 25% — every single year. No re-deals.'},
+};
+const state = { numPicks:5, diff:'hard', rounds:[], draftedTickers:new Set(), usedYears:new Set(), pack:[], packYear:null, rerollsLeft:1, lastTs:null };
+
+const $ = id => document.getElementById(id);
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); window.scrollTo(0,0); }
+const money = v => '$'+Math.round(v).toLocaleString('en-US');
+const pct = r => (r>=0?'+':'')+Math.round(r*100).toLocaleString('en-US')+'%';
+const mult = m => (m>=100?Math.round(m):m.toFixed(1))+'×';
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function sample(arr,n){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a.slice(0,n); }
+
+function validYears(s){
+  if(s.years) return s.years;                 // busts carry an explicit trap-year list
+  if(s._valid) return s._valid;
+  const out=[], top=BASE+Math.floor((s.startIdx+s.prices.length-1)/12)-H;
+  for(let y=s.firstYear;y<=top;y++){ const loc=(y-BASE)*12-s.startIdx; if(loc>=0&&loc+HM<s.prices.length) out.push(y); }
+  s._valid=out; return out;
+}
+function makeCard(s,y){ const loc=(y-BASE)*12-s.startIdx, buy=s.prices[loc], sell=s.prices[loc+HM];
+  return {s,ticker:s.ticker,name:s.name,sector:s.sector,desc:s.desc,year:y,loc,buy,sell,ret:sell/buy-1}; }
+function winVal(series,year,invest){ if(!series)return null; const loc=(year-BASE)*12-series.startIdx,p=series.prices;
+  if(loc<0||loc+HM>=p.length)return null; return invest*p[loc+HM]/p[loc]; }
+function winTraj(series,year,invest,N){ if(!series)return null; const loc=(year-BASE)*12-series.startIdx,p=series.prices;
+  if(loc<0||loc+HM>=p.length)return null; return Array.from({length:N},(_,m)=>invest*p[loc+m]/p[loc]); }
+const spMultOf = y => winVal(DATA.benchmark,y,1) ?? 1;             // S&P growth multiple over [y, y+10]
+const bufMultOf = y => winVal(DATA.buffett,y,1) ?? spMultOf(y);   // Buffett, falls back to S&P pre-1996
+function benchMultOf(y){ return DIFFS[state.diff].bench==='max' ? Math.max(spMultOf(y),bufMultOf(y)) : bufMultOf(y); }
+function benchName(){ return DIFFS[state.diff].bench==='max' ? 'the Market' : 'Buffett'; }
+function won(card){ return (1+card.ret) > benchMultOf(card.year) * (1+DIFFS[state.diff].margin); }
+
+if(!DATA){ document.body.innerHTML='<div class="wrap"><h1>Missing data.js</h1><p class="sub">Run build_data.py to generate it.</p></div>'; }
+else { const dr=DATA.stocks.filter(s=>validYears(s).length>0), minY=Math.min(...dr.map(s=>validYears(s)[0]));
+  $('data-note').textContent=`${dr.length} real companies (some went bankrupt, most trailed the market) · prices ${minY}–2026 · every pick is a ${H}-year hold.`;
+  renderDiffSel(); }
+
+function renderDiffSel(){ const el=$('diffsel'); if(!el)return; el.innerHTML='';
+  Object.entries(DIFFS).forEach(([k,D])=>{ const b=document.createElement('div'); b.className='diffbtn'+(k===state.diff?' on':''); b.onclick=()=>setDiff(k);
+    b.innerHTML=`${D.emoji} ${D.label}<small>vs ${D.bench==='max'?'market':'Buffett'}${D.margin?` +${D.margin*100|0}%`:''}</small>`; el.appendChild(b); });
+  $('diffblurb').textContent=DIFFS[state.diff].blurb; }
+function setDiff(k){ state.diff=k; renderDiffSel(); }
+
+/* ---------- draft ---------- */
+function startGame(n){ const D=DIFFS[state.diff]; state.numPicks=n;state.rounds=[];state.draftedTickers=new Set();state.usedYears=new Set();state.rerollsLeft=D.rerolls;state.lastTs=null;
+  show('screen-draft');renderScore();dealYear(); }
+function renderScore(){
+  $('draft-progress').textContent=`Round ${Math.min(state.rounds.length+1,state.numPicks)} of ${state.numPicks} · beat ${benchName()} each year`;
+  const el=$('scoreline'); el.innerHTML='<span style="color:var(--muted)">vs '+benchName()+'</span>';
+  for(let i=0;i<state.numPicks;i++){ const r=state.rounds[i]; const p=document.createElement('span');
+    p.className='pip'+(r?(won(r.chosen)?' win':' loss'):''); p.title=r?`${r.chosen.year} ${r.chosen.ticker}`:''; el.appendChild(p); }
+}
+function dealYear(){ const D=DIFFS[state.diff];
+  let y,pool,t=0;
+  do{ y=BASE+Math.floor(Math.random()*(LATEST-BASE+1));
+      pool=DATA.stocks.filter(s=>!state.draftedTickers.has(s.ticker)&&validYears(s).includes(y));
+      t++; }while((state.usedYears.has(y)||pool.length<D.cards)&&t<80);
+  state.usedYears.add(y); state.packYear=y; dealCards(); }
+function dealCards(){ const D=DIFFS[state.diff];
+  const pool=DATA.stocks.filter(s=>!state.draftedTickers.has(s.ticker)&&validYears(s).includes(state.packYear));
+  state.pack=sample(pool,Math.min(D.cards,pool.length)).map(s=>makeCard(s,state.packYear));
+  renderPack(); }
+function renderPack(){
+  $('pack-year').innerHTML=`The year is <b>${state.packYear}</b> — which would you buy and hold for ${H} years?`;
+  const el=$('pack');el.innerHTML='';
+  state.pack.forEach((c,i)=>{ const card=document.createElement('div');card.className='card';card.onclick=()=>draft(i);
+    const col=SECTOR_COLORS[c.sector]||'#64748b';
+    card.innerHTML=`<span class="chip" style="color:${col};border:1px solid ${col}33;background:${col}1a">${c.sector}</span>
+      <div class="tk">${c.ticker}</div><div class="nm">${esc(c.name)}</div><div class="bl">${esc(c.desc)}</div>`;
+    el.appendChild(card); });
+  $('reroll-btn').style.visibility=state.rerollsLeft>0?'visible':'hidden';
+  $('reroll-hint').textContent=state.rerollsLeft>0?`Don't like this slate? You have ${state.rerollsLeft} re-deal left.`:'No re-deals left — choose wisely.'; }
+function reroll(){ if(state.rerollsLeft<=0)return; state.rerollsLeft--; dealCards(); }
+function draft(i){ const chosen=state.pack[i]; state.rounds.push({chosen,options:state.pack}); state.draftedTickers.add(chosen.ticker); renderScore();
+  if(state.rounds.length>=state.numPicks) runSim(); else dealYear(); }
+
+/* ---------- simulation ---------- */
+let simSeries, spSeries, bufSeries, yMin, yMax;
+function runSim(){
+  show('screen-sim');
+  const invest=10000/state.numPicks, N=HM+1;
+  const yourT=state.rounds.map(r=>{const p=r.chosen.s.prices,b=r.chosen.loc;return Array.from({length:N},(_,m)=>invest*p[b+m]/p[b]);});
+  const spT=state.rounds.map(r=>winTraj(DATA.benchmark,r.chosen.year,invest,N)||Array(N).fill(invest));
+  const bufT=state.rounds.map(r=>winTraj(DATA.buffett,r.chosen.year,invest,N)||winTraj(DATA.benchmark,r.chosen.year,invest,N)||Array(N).fill(invest));
+  simSeries=[];spSeries=[];bufSeries=[];
+  for(let m=0;m<N;m++){let a=0,s=0,b=0;for(let k=0;k<yourT.length;k++){a+=yourT[k][m];s+=spT[k][m];b+=bufT[k][m];}simSeries.push(a);spSeries.push(s);bufSeries.push(b);}
+  const all=simSeries.concat(bufSeries,spSeries); yMin=Math.min(9000,Math.min(...all)*0.96); yMax=Math.max(...all)*1.08;
+  const hEl=$('holdings');hEl.innerHTML='';
+  state.rounds.forEach((r,i)=>{const d=document.createElement('div');d.className='hold';d.id='hold-'+i;d.innerHTML=`’${String(r.chosen.year).slice(-2)} ${r.chosen.ticker} <b>1.0×</b>`;hEl.appendChild(d);});
+  setupCanvas();
+  const dur=5200,t0=performance.now();
+  function frame(now){ let f=Math.min(1,(now-t0)/dur); const e=1-Math.pow(1-f,2),p=e*(N-1);
+    drawChart(p);
+    const v=interp(simSeries,p); $('sim-val').textContent=money(v); $('sim-val').className='val mono '+(v>=10000?'green':'red');
+    $('sim-date').textContent=`Year ${(p/12).toFixed(1)} of ${H}`;
+    const bv=interp(bufSeries,p),diff=v-bv;
+    $('sim-delta').innerHTML=(diff>=0?'▲ ':'▼ ')+money(Math.abs(diff))+(diff>=0?' ahead of':' behind')+' Buffett';
+    $('sim-delta').className='delta mono '+(diff>=0?'green':'red');
+    state.rounds.forEach((r,i)=>{const p2=r.chosen.s.prices,b=r.chosen.loc;const m=interp(Array.from({length:N},(_,m)=>p2[b+m]/p2[b]),p);
+      const el=$('hold-'+i); if(el) el.innerHTML=`’${String(r.chosen.year).slice(-2)} ${r.chosen.ticker} <b class="${m>=1?'green':'red'}">${m.toFixed(1)}×</b>`;});
+    if(f<1)requestAnimationFrame(frame); else setTimeout(showResults,850);
+  }
+  requestAnimationFrame(frame);
+}
+function interp(s,p){const i=Math.floor(p);if(i>=s.length-1)return s[s.length-1];return s[i]+(s[i+1]-s[i])*(p-i);}
+let ctx,cw,ch;
+function setupCanvas(){const cv=$('chart'),dpr=window.devicePixelRatio||1;cw=cv.clientWidth;ch=cv.clientHeight;cv.width=cw*dpr;cv.height=ch*dpr;ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);}
+function ptX(i,N){const padL=8,padR=8;return padL+(i/(N-1))*(cw-padL-padR);}
+function ptY(v){const padT=14,padB=14;return ch-padB-(v-yMin)/(yMax-yMin)*(ch-padT-padB);}
+function lineTo(series,p,N){const upto=Math.floor(p);ctx.beginPath();for(let i=0;i<=upto;i++){const x=ptX(i,N),y=ptY(series[i]);i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.lineTo(ptX(p,N),ptY(interp(series,p)));ctx.stroke();}
+function drawChart(p){
+  const N=simSeries.length; ctx.clearRect(0,0,cw,ch);
+  ctx.strokeStyle='#1c2438';ctx.lineWidth=1; for(let y=1;y<H;y++){const x=ptX(y*12,N);ctx.beginPath();ctx.moveTo(x,14);ctx.lineTo(x,ch-14);ctx.stroke();}
+  const yBase=ptY(10000); ctx.strokeStyle='#2a3450';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(0,yBase);ctx.lineTo(cw,yBase);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#56627d';ctx.font='11px ui-monospace,monospace';ctx.fillText('$10,000 start',10,yBase-6);
+  ctx.strokeStyle='#64748b';ctx.lineWidth=1.4;lineTo(spSeries,p,N);
+  ctx.strokeStyle='#fbbf24';ctx.lineWidth=1.8;lineTo(bufSeries,p,N);
+  const endV=interp(simSeries,p),up=endV>=10000,col=up?'#22c55e':'#ef4444';
+  const upto=Math.floor(p),ex=ptX(p,N),ey=ptY(endV);
+  ctx.beginPath();for(let i=0;i<=upto;i++){const x=ptX(i,N),y=ptY(simSeries[i]);i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.lineTo(ex,ey);
+  const g=ctx.createLinearGradient(0,0,0,ch);g.addColorStop(0,col+'44');g.addColorStop(1,col+'02');
+  ctx.lineTo(ex,ptY(yMin));ctx.lineTo(ptX(0,N),ptY(yMin));ctx.closePath();ctx.fillStyle=g;ctx.fill();
+  ctx.strokeStyle=col;ctx.lineWidth=2.6;lineTo(simSeries,p,N);
+  ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=12;ctx.beginPath();ctx.arc(ex,ey,4.5,0,7);ctx.fill();ctx.shadowBlur=0;
+}
+
+function moneyTier(v){ const m=v/10000;
+  if(v<10000) return 'you lost money';
+  if(m<1.3) return 'treading water';
+  if(m<2) return 'beat the bank';
+  if(m<4) return 'a comfortable nest egg';
+  if(m<10) return 'seriously well off';
+  if(m<25) return 'financial freedom';
+  if(m<100) return 'early-retirement money';
+  return 'generational wealth'; }
+
+/* ---------- results ---------- */
+function showResults(){
+  const D=DIFFS[state.diff], N=state.numPicks, invest=10000/N, bn=benchName();
+  const yourVal=state.rounds.reduce((a,r)=>a+invest*(1+r.chosen.ret),0);
+  const spTot=state.rounds.reduce((a,r)=>a+invest*spMultOf(r.chosen.year),0);
+  const bufTot=state.rounds.reduce((a,r)=>a+invest*bufMultOf(r.chosen.year),0);
+  let wins=0,bestVal=0,maxRet=-2,bestPick=null,steppedMine=false;
+  state.rounds.forEach(r=>{ if(won(r.chosen)) wins++;
+    bestVal+=invest*(1+Math.max(...r.options.map(o=>o.ret)));
+    if(r.chosen.ret>maxRet){maxRet=r.chosen.ret;bestPick=r.chosen;} if(r.chosen.s.bust)steppedMine=true; });
+  const losses=N-wins, frac=wins/N, yourMult=yourVal/10000;
+  const perfect=wins===N, winning=wins*2>N, tie=wins*2===N;
+
+  let out;
+  if(perfect)      out={e:'🏆',l:`Perfect Game — ${wins}-0!`,c:'#fbbf24',h:`You beat ${bn} every single year. Almost nobody does this.`};
+  else if(winning) out={e:'🎩',l:`You beat ${bn}!`,c:'#22c55e',h:`A winning record against ${bn} — most professionals can't say that.`};
+  else if(tie)     out={e:'🤝',l:`Dead heat with ${bn}`,c:'#eab308',h:`You matched ${bn} blow for blow. One more pick and you'd have had him.`};
+  else             out={e:'📉',l:`${bn} won this time`,c:'#ef4444',h:`${bn} out-picked you. The Oracle is hard to beat — run it back.`};
+  const grade=[[1,'S'],[.75,'A'],[.5001,'B'],[.4,'C'],[.2,'D'],[-1,'F']].find(x=>frac>=x[0])[1];
+
+  $('bench-name').textContent=bn.toUpperCase();
+  $('ms-emoji').textContent=out.e; $('ms-emoji').style.background=out.c+'22'; $('ms-emoji').style.border='2px solid '+out.c;
+  $('ms-label').textContent=out.l; $('ms-label').style.color=out.c;
+  $('res-val').innerHTML=`${wins}<span style="color:var(--muted)">–</span>${losses} <span style="font-size:16px;color:var(--muted)">vs ${bn}</span>`;
+  $('res-val').className='big mono';
+  $('res-sub').innerHTML=`<span class="gchip" style="color:var(--gold);border-color:var(--gold)">${D.emoji} ${D.label.toUpperCase()}</span><span class="gchip" style="color:${out.c}">GRADE ${grade}</span> You turned $10k into <b>${money(yourVal)}</b> (${mult(yourMult)}) — ${moneyTier(yourVal)}.<br>${out.h}`;
+
+  const badges=[];
+  if(perfect) badges.push(['🏆',`Perfect Game · ${wins}-0`,'var(--gold)']);
+  else badges.push(winning?['🎩',`Beat ${bn}`,'var(--gold)']:['📉',`${bn} won`,'var(--muted)']);
+  badges.push(['🎯',`${wins} of ${N} years won`, winning?'var(--green)':'var(--muted)']);
+  if(maxRet>=49) badges.push(['🚀','Picked a 50-bagger','var(--teal)']);
+  else if(maxRet>=9) badges.push(['🚀','Picked a 10-bagger','var(--teal)']);
+  if(steppedMine) badges.push(['💀','Stepped on a landmine','var(--red)']);
+  $('res-badges').innerHTML=badges.map(b=>`<span class="badge" style="border-color:${b[2]}55"><span>${b[0]}</span>${b[1]}</span>`).join('');
+
+  // year-by-year head-to-head table
+  const rows=state.rounds.map(r=>{ const c=r.chosen, w=won(c), bm=benchMultOf(c.year), mine=c.s.bust?' 💀':'';
+    return `<tr><td><b class="mono">${c.year} ${c.ticker}</b>${mine} <span style="color:var(--muted)">${esc(c.name)}</span></td>
+      <td class="num ${c.ret>=0?'green':'red'}">${pct(c.ret)}</td>
+      <td class="num" style="color:var(--muted)">${pct(bm-1)}</td>
+      <td class="num">${w?'<span class="green">✓ WIN</span>':'<span class="red">✗ loss</span>'}</td></tr>`;}).join('');
+  $('res-table').innerHTML=`<tr><th>Your pick (buy year)</th><th style="text-align:right">Your 10-yr</th><th style="text-align:right">${esc(bn)} 10-yr</th><th style="text-align:right">Result</th></tr>${rows}`;
+
+  // money bars (secondary)
+  const barMax=Math.max(yourVal,bestVal,bufTot,spTot);
+  const bar=(lab,val,col)=>{const w=Math.max(6,val/barMax*100);return `<div class="bar-row"><span class="lab">${lab}</span><div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${col}">${money(val)}</div></div></div>`;};
+  $('res-bars').innerHTML=bar('You',yourVal,'#22c55e')+bar('Warren Buffett',bufTot,'#fbbf24')+bar('The S&P 500',spTot,'#64748b')+bar('Best possible',bestVal,'#3b82f6');
+
+  $('answer-list').innerHTML=state.rounds.map((r)=>{const best=r.options.slice().sort((a,b)=>b.ret-a.ret)[0],took=r.chosen.ticker===best.ticker;
+    return `<div class="ans-row"><span><b class="mono">${r.chosen.year}</b> — best was <b class="mono">${best.ticker}</b> <span class="green mono">${pct(best.ret)}</span></span>
+      <span class="mono" style="color:${took?'var(--green)':'var(--muted)'}">${took?'✓ you took it':'you took '+r.chosen.ticker+' '+pct(r.chosen.ret)}</span></div>`;}).join('');
+
+  // leaderboard
+  state.pendingScore={value:yourVal,mult:yourMult,wins,losses,record:`${wins}-${losses}`,benchName:bn,grade,picks:N,diff:state.diff,diffLabel:D.label,score:wins*D.mult};
+  const slot=$('lb-entry-slot');
+  if(lbQualifies(state.pendingScore.score)){
+    slot.innerHTML=`<div class="lb-entry"><span style="font-size:22px">🏆</span>
+      <b>You made the leaderboard!</b> <input id="lb-name" maxlength="16" placeholder="Your name" value="">
+      <button class="btn-primary" style="padding:10px 18px" onclick="commitScore()">Save</button></div>`;
+  } else { slot.innerHTML=`<div class="lb-entry" style="border-color:var(--line)"><span style="font-size:20px">📋</span>
+      <span>${wins}-${losses} vs ${bn} — not a top-10 run yet. <button class="linkbtn" onclick="renderLB();show('screen-lb')">See the board</button></span></div>`; }
+  show('screen-results');
+}
+function commitScore(){ const name=($('lb-name').value||'You').slice(0,16); const ts=Date.now();
+  const e=Object.assign({name,ts,date:new Date().toISOString().slice(0,10)},state.pendingScore);
+  addScore(e); state.lastTs=ts; renderLB(ts); show('screen-lb'); }
+
+/* ---------- leaderboard (localStorage) ---------- */
+function loadLB(){ try{return JSON.parse(localStorage.getItem(LB_KEY))||[];}catch(e){return [];} }
+function saveLB(a){ try{localStorage.setItem(LB_KEY,JSON.stringify(a));}catch(e){} }
+function lbQualifies(sc){ const a=loadLB(); return a.length<10 || sc>(a[9]?a[9].score:0); }
+function addScore(e){ const a=loadLB(); a.push(e); a.sort((x,y)=>(y.score-x.score)||(y.value-x.value)); saveLB(a.slice(0,25)); }
+function clearLB(){ saveLB([]); renderLB(); }
+function renderLB(highlightTs){
+  const a=loadLB().slice(0,10);
+  if(!a.length){ $('lb-table').innerHTML='<tr><td style="text-align:center;color:var(--muted);padding:26px">No scores yet — play a round to claim #1.</td></tr>'; return; }
+  const rows=a.map((e,i)=>`<tr class="${e.ts===highlightTs?'you':''}"><td class="mono" style="width:42px">${i+1}</td>
+    <td><b>${esc(e.name)}</b></td><td class="mono">${esc(e.record||'')} <span style="color:var(--muted)">vs ${esc(e.benchName||'Buffett')}</span></td>
+    <td class="num green">${money(e.value)}</td><td class="num">${esc(e.diffLabel||'—')}</td><td class="num" style="color:var(--muted)">${e.picks}r</td></tr>`).join('');
+  $('lb-table').innerHTML=`<tr><th>#</th><th>Name</th><th>Record</th><th style="text-align:right">Money</th><th style="text-align:right">Difficulty</th><th style="text-align:right">Length</th></tr>${rows}`;
+}
+</script>
+</body>
+</html>
