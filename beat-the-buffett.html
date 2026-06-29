@@ -263,7 +263,7 @@ function setDiff(k){ state.diff=k; renderDiffSel(); }
 function startGame(n){ const D=DIFFS[state.diff]; state.numPicks=n;state.rounds=[];state.draftedTickers=new Set();state.usedYears=new Set();state.rerollsLeft=D.rerolls;state.lastTs=null;
   show('screen-draft');renderScore();dealYear(); }
 function renderScore(){
-  $('draft-progress').textContent=`Round ${Math.min(state.rounds.length+1,state.numPicks)} of ${state.numPicks} · beat ${benchName()} each year`;
+  $('draft-progress').textContent=`Round ${Math.min(state.rounds.length+1,state.numPicks)} of ${state.numPicks} · $${(10000/state.numPicks).toLocaleString('en-US')} per pick · beat ${benchName()}`;
   const el=$('scoreline'); el.innerHTML='<span style="color:var(--muted)">vs '+benchName()+'</span>';
   for(let i=0;i<state.numPicks;i++){ const r=state.rounds[i]; const p=document.createElement('span');
     p.className='pip'+(r?(won(r.chosen)?' win':' loss'):''); p.title=r?`${r.chosen.year} ${r.chosen.ticker}`:''; el.appendChild(p); }
@@ -391,15 +391,15 @@ function showResults(){
   // year-by-year head-to-head table
   const rows=state.rounds.map(r=>{ const c=r.chosen, w=won(c), bm=benchMultOf(c.year), mine=c.s.bust?' 💀':'';
     return `<tr><td><b class="mono">${c.year} ${c.ticker}</b>${mine} <span style="color:var(--muted)">${esc(c.name)}</span></td>
-      <td class="num ${c.ret>=0?'green':'red'}">${pct(c.ret)}</td>
+      <td class="num"><span class="${c.ret>=0?'green':'red'}">${money(invest*(1+c.ret))}</span><br><span style="color:var(--muted);font-size:11.5px">${pct(c.ret)}</span></td>
       <td class="num" style="color:var(--muted)">${pct(bm-1)}</td>
       <td class="num">${w?'<span class="green">✓ WIN</span>':'<span class="red">✗ loss</span>'}</td></tr>`;}).join('');
-  $('res-table').innerHTML=`<tr><th>Your pick (buy year)</th><th style="text-align:right">Your 10-yr</th><th style="text-align:right">${esc(bn)} 10-yr</th><th style="text-align:right">Result</th></tr>${rows}`;
+  $('res-table').innerHTML=`<tr><th>Your pick (buy year)</th><th style="text-align:right">Your $${invest.toLocaleString('en-US')} →</th><th style="text-align:right">${esc(bn)} 10-yr</th><th style="text-align:right">Result</th></tr>${rows}`;
 
   // money bars (secondary)
   const barMax=Math.max(yourVal,bestVal,bufTot,spTot);
   const bar=(lab,val,col)=>{const w=Math.max(6,val/barMax*100);return `<div class="bar-row"><span class="lab">${lab}</span><div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${col}">${money(val)}</div></div></div>`;};
-  $('res-bars').innerHTML=bar('You',yourVal,'#22c55e')+bar('Warren Buffett',bufTot,'#fbbf24')+bar('The S&P 500',spTot,'#64748b')+bar('Best possible',bestVal,'#3b82f6');
+  $('res-bars').innerHTML=`<div style="color:var(--muted);font-size:13px;margin:-2px 0 12px">Your $10,000 was split evenly — <b style="color:var(--txt)">${money(invest)}</b> on each of your ${N} picks.</div>`+bar('You',yourVal,'#22c55e')+bar('Warren Buffett',bufTot,'#fbbf24')+bar('The S&P 500',spTot,'#64748b')+bar('Best possible',bestVal,'#3b82f6');
 
   $('answer-list').innerHTML=state.rounds.map((r)=>{const best=r.options.slice().sort((a,b)=>b.ret-a.ret)[0],took=r.chosen.ticker===best.ticker;
     return `<div class="ans-row"><span><b class="mono">${r.chosen.year}</b> — best was <b class="mono">${best.ticker}</b> <span class="green mono">${pct(best.ret)}</span></span>
